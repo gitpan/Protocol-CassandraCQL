@@ -1,0 +1,7 @@
+Revision history for Protocol-CassandraCQL
+
+0.04    CHANGES:
+         * Split out from Net-Async-CassandraCQL
+         * Added Protocol::CassandraCQL::Frame->recv
+         * Added a minimal Protocol::CassandraCQL::Client for testing and
+           driving examples/cqlsh

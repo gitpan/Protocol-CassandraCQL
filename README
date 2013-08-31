@@ -1,0 +1,46 @@
+NAME
+    `Protocol::CassandraCQL' - wire protocol support functions for Cassandra
+    CQL3
+
+DESCRIPTION
+    This module provides the basic constants and other support functions
+    required to communicate with a Cassandra database using `CQL3'. It is
+    not in itself a CQL client; it simply provides the necessary support
+    functions to allow one to be written.
+
+    For a complete client, see instead Net::Async::CassandraCQL.
+
+CONSTANTS
+    The following families of constants are defined, along with export tags:
+
+  OPCODE_* (:opcodes)
+    Opcodes used in message frames.
+
+  RESULT_* (:results)
+    Result codes used in `OPCODE_RESULT' frames.
+
+  TYPE_* (:types)
+    Type codes used in `TYPE_ROWS' and `TYPE_PREPARED' column metadata.
+
+  CONSISTENCY_* (:consistencies)
+    Consistency levels used in `OPCODE_QUERY' and `OPCODE_EXECUTE' frames.
+
+FUNCTIONS
+  $name = typename( $type )
+    Returns the name of the given `TYPE_*' value, without the initial
+    `TYPE_' prefix.
+
+TODO
+    *       Reimplement Protocol::CassandraCQL::Frame in XS code for better
+            performance.
+
+SPONSORS
+    This code was paid for by
+
+    * Perceptyx http://www.perceptyx.com/
+
+    * Shadowcat Systems http://www.shadow.cat
+
+AUTHOR
+    Paul Evans <leonerd@leonerd.org.uk>
+
