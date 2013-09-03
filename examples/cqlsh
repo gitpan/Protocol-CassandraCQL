@@ -17,10 +17,14 @@ use Data::Dump 'pp';
 
 GetOptions(
    'host|h=s' => \(my $HOST = "localhost"),
+   'user|u=s' => \my $USERNAME,
+   'pass|p=s' => \my $PASSWORD,
 ) or exit 1;
 
 my $cassie = Protocol::CassandraCQL::Client->new(
    PeerHost => $HOST,
+   Username => $USERNAME,
+   Password => $PASSWORD,
 );
 $cassie or die "Cannot connect to $HOST - $@";
 

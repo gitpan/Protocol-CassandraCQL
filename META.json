@@ -4,7 +4,7 @@
       "Paul Evans <leonerd@leonerd.org.uk>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Module::Build version 0.4005, CPAN::Meta::Converter version 2.120921",
+   "generated_by" : "Module::Build version 0.4007, CPAN::Meta::Converter version 2.132140",
    "license" : [
       "perl_5"
    ],
@@ -32,103 +32,84 @@
    "provides" : {
       "Protocol::CassandraCQL" : {
          "file" : "lib/Protocol/CassandraCQL.pm",
-         "version" : "0.04"
+         "version" : "0.05"
       },
       "Protocol::CassandraCQL::Client" : {
          "file" : "lib/Protocol/CassandraCQL/Client.pm",
-         "version" : "0.04"
+         "version" : "0.05"
       },
       "Protocol::CassandraCQL::ColumnMeta" : {
          "file" : "lib/Protocol/CassandraCQL/ColumnMeta.pm",
-         "version" : "0.04"
+         "version" : "0.05"
       },
       "Protocol::CassandraCQL::Frame" : {
          "file" : "lib/Protocol/CassandraCQL/Frame.pm",
-         "version" : "0.04"
+         "version" : "0.05"
       },
       "Protocol::CassandraCQL::Result" : {
          "file" : "lib/Protocol/CassandraCQL/Result.pm",
-         "version" : "0.04"
+         "version" : "0.05"
       },
       "Protocol::CassandraCQL::Type" : {
          "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : "0.04"
+         "version" : "0.05"
       },
       "Protocol::CassandraCQL::Type::ASCII" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       },
       "Protocol::CassandraCQL::Type::BIGINT" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       },
       "Protocol::CassandraCQL::Type::BLOB" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       },
       "Protocol::CassandraCQL::Type::BOOLEAN" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       },
       "Protocol::CassandraCQL::Type::COUNTER" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       },
       "Protocol::CassandraCQL::Type::DECIMAL" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       },
       "Protocol::CassandraCQL::Type::DOUBLE" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       },
       "Protocol::CassandraCQL::Type::FLOAT" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       },
       "Protocol::CassandraCQL::Type::INET" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       },
       "Protocol::CassandraCQL::Type::INT" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       },
       "Protocol::CassandraCQL::Type::LIST" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       },
       "Protocol::CassandraCQL::Type::MAP" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       },
       "Protocol::CassandraCQL::Type::SET" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       },
       "Protocol::CassandraCQL::Type::TEXT" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       },
       "Protocol::CassandraCQL::Type::TIMESTAMP" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       },
       "Protocol::CassandraCQL::Type::TIMEUUID" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       },
       "Protocol::CassandraCQL::Type::UUID" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       },
       "Protocol::CassandraCQL::Type::VARCHAR" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       },
       "Protocol::CassandraCQL::Type::VARINT" : {
-         "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : 0
+         "file" : "lib/Protocol/CassandraCQL/Type.pm"
       }
    },
    "release_status" : "stable",
@@ -137,5 +118,5 @@
          "http://dev.perl.org/licenses/"
       ]
    },
-   "version" : "0.04"
+   "version" : "0.05"
 }

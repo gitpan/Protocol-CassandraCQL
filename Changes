@@ -1,5 +1,15 @@
 Revision history for Protocol-CassandraCQL
 
+0.05    2013/09/03 17:00:39
+        [CHANGES]
+         * Declare CQL_VERSION 3.0.5
+         * Support password-based authentication
+         * Support 'inet' type in Protocol::CassandraCQL::Frame
+
+        [BUGFIXES]
+         * Handle OPCODE_ERROR correctly in P:C:Client
+         * Perl 5.12 and below needs 'use IO::Handle'
+
 0.04    CHANGES:
          * Split out from Net-Async-CassandraCQL
          * Added Protocol::CassandraCQL::Frame->recv

@@ -8,9 +8,12 @@ package Protocol::CassandraCQL::Frame;
 use strict;
 use warnings;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
+
+use Carp;
 
 use Encode qw( encode_utf8 decode_utf8 );
+use Socket qw( AF_INET AF_INET6 );
 
 # TODO: At least the lower-level methods of this class should be rewritten in
 # efficient XS code
@@ -249,6 +252,37 @@ sub pack_short_bytes { $_[0]->pack_short( length $_[1] );
                        $_[0] }
 sub unpack_short_bytes { my $l = $_[0]->unpack_short;
                          substr ${$_[0]}, 0, $l, "" }
+
+=head2 $frame->pack_inet( $v )
+
+=head2 $v = $frame->unpack_inet
+
+Add or remove an IPv4 or IPv6 address from or to a packed sockaddr string
+(such as returned from C<pack_sockaddr_in> or C<pack_sockaddr_in6>.
+
+=cut
+
+sub pack_inet { my $family = Socket::sockaddr_family($_[1]);
+                if   ( $family == AF_INET  ) { ${$_[0]} .= "\x04"; $_[0]->_pack_inet4( $_[1] ) }
+                elsif( $family == AF_INET6 ) { ${$_[0]} .= "\x10"; $_[0]->_pack_inet6( $_[1] ) }
+                else { croak "Expected AF_INET or AF_INET6 address" }
+                $_[0] }
+sub unpack_inet { my $addrlen = unpack "C", substr ${$_[0]}, 0, 1, "";
+                  if   ( $addrlen ==  4 ) { $_[0]->_unpack_inet4 }
+                  elsif( $addrlen == 16 ) { $_[0]->_unpack_inet6 }
+                  else { croak "Expected address length 4 or 16" } }
+
+# AF_INET
+sub _pack_inet4 { my ( $port, $addr ) = Socket::unpack_sockaddr_in( $_[1] );
+                  ${$_[0]} .= $addr; $_[0]->pack_int( $port ) }
+sub _unpack_inet4 { my $addr = substr ${$_[0]}, 0, 4, "";
+                    Socket::pack_sockaddr_in( $_[0]->unpack_int, $addr ) }
+
+# AF_INET6
+sub _pack_inet6 { my ( $port, $addr ) = Socket::unpack_sockaddr_in6( $_[1] );
+                  ${$_[0]} .= $addr; $_[0]->pack_int( $port ) }
+sub _unpack_inet6 { my $addr = substr ${$_[0]}, 0, 16, "";
+                    Socket::pack_sockaddr_in6( $_[0]->unpack_int, $addr ) }
 
 =head2 $frame->pack_string_map( $v )
 

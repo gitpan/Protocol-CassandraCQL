@@ -7,6 +7,14 @@ use utf8;
 use Test::More;
 use Test::HexString;
 
+# perls prior to 5.14 need this
+use IO::Handle;
+
+# For 'inet' type
+use Socket qw( AF_INET  pack_sockaddr_in  unpack_sockaddr_in
+               AF_INET6 pack_sockaddr_in6 unpack_sockaddr_in6
+               inet_pton inet_ntop );
+
 use Protocol::CassandraCQL::Frame;
 
 # Empty
@@ -99,6 +107,31 @@ is( Protocol::CassandraCQL::Frame->new->bytes, "", '->bytes empty' );
 
    $frame = Protocol::CassandraCQL::Frame->new( $frame->bytes );
    is( $frame->unpack_short_bytes, "efgh", '->unpack_short_bytes' );
+}
+
+# inet - IPv4
+{
+   my $frame = Protocol::CassandraCQL::Frame->new;
+   my $INADDR = inet_pton( AF_INET, "192.168.1.1" );
+   $frame->pack_inet( pack_sockaddr_in( 8001, $INADDR ) );
+   is_hexstr( $frame->bytes, "\4\xc0\xa8\x01\x01\0\0\x1f\x41", '->pack_inet IPv4' );
+
+   $frame = Protocol::CassandraCQL::Frame->new( $frame->bytes );
+   is_deeply( [ unpack_sockaddr_in( $frame->unpack_inet ) ],
+              [ 8001, $INADDR ], '->unpack_inet IPv4' );
+}
+
+# inet - IPv4
+{
+   my $frame = Protocol::CassandraCQL::Frame->new;
+   my $IN6ADDR = inet_pton( AF_INET6, "2001:db8::1:2:3" );
+   $frame->pack_inet( pack_sockaddr_in6( 8001, $IN6ADDR ) );
+   is_hexstr( $frame->bytes, "\x10\x20\x01\x0d\xb8\x00\x00\x00\x00\x00\x00\x00\x01\00\x02\x00\x03" .
+      "\0\0\x1f\x41", '->pack_inet IPv6' );
+
+   $frame = Protocol::CassandraCQL::Frame->new( $frame->bytes );
+   is_deeply( [ (unpack_sockaddr_in6( $frame->unpack_inet ))[0,1] ],
+              [ 8001, $IN6ADDR ], '->unpack_inet IPv6' );
 }
 
 # string map

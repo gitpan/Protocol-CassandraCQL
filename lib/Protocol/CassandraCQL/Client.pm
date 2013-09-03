@@ -8,7 +8,7 @@ package Protocol::CassandraCQL::Client;
 use strict;
 use warnings;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 use base qw( IO::Socket::IP );
 
@@ -62,6 +62,12 @@ L<IO::Socket::IP>:
 
 =over 8
 
+=item Username => STRING
+
+=item Password => STRING
+
+Authentication credentials if required by the server.
+
 =item Keyspace => STRING
 
 If defined, selects the keyspace to C<USE> after connection.
@@ -79,7 +85,7 @@ sub new
 
    my $self = $class->SUPER::new( %args ) or return;
 
-   $self->startup;
+   $self->startup( %args );
    $self->use_keyspace( $args{Keyspace} ) if defined $args{Keyspace};
 
    return $self;
@@ -107,7 +113,7 @@ sub send_message
 
    $self->send( $frame->build( 0x01, 0, 0, $opcode ) );
 
-   my ( $version, $flags, $streamid, $op, $response ) =
+   my ( $version, $flags, $streamid, $result_op, $response ) =
       Protocol::CassandraCQL::Frame->recv( $self ) or croak "Unable to ->recv: $!";
 
    $version == 0x81 or
@@ -116,12 +122,12 @@ sub send_message
    $streamid == 0 or
       croak "Unexpected stream ID $streamid";
 
-   if( $opcode == OPCODE_ERROR ) {
+   if( $result_op == OPCODE_ERROR ) {
       $response->unpack_int;
       croak "OPCODE_ERROR: " . $response->unpack_string;
    }
 
-   return ( $op, $response );
+   return ( $result_op, $response );
 }
 
 # function
@@ -151,13 +157,33 @@ sub _decode_result
 sub startup
 {
    my $self = shift;
+   my %args = @_;
 
    my ( $op, $response ) = $self->send_message( OPCODE_STARTUP,
       Protocol::CassandraCQL::Frame->new
          ->pack_string_map( {
-            CQL_VERSION => "3.0.0",
+            CQL_VERSION => "3.0.5",
          } )
    );
+
+   if( $op == OPCODE_AUTHENTICATE ) {
+      my $authenticator = $response->unpack_string;
+      if( $authenticator eq "org.apache.cassandra.auth.PasswordAuthenticator" ) {
+         defined $args{Username} and defined $args{Password} or
+            croak "Cannot authenticate without a username/password";
+
+         ( $op, $response ) = $self->send_message( OPCODE_CREDENTIALS,
+            Protocol::CassandraCQL::Frame->new
+               ->pack_string_map( {
+                  username => $args{Username},
+                  password => $args{Password},
+               } )
+         );
+      }
+      else {
+         croak "Unrecognised authenticator $authenticator";
+      }
+   }
 
    $op == OPCODE_READY or croak "Expected OPCODE_READY";
 }
