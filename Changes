@@ -1,5 +1,11 @@
 Revision history for Protocol-CassandraCQL
 
+0.06    2013/09/07 20:48:19
+        [CHANGES]
+         * Allow creating Protocol::CassandraCQL::ColumnMeta and
+           ::Result objects directly from immediate arguments, for use in
+           mocking and unit testing
+
 0.05    2013/09/03 17:00:39
         [CHANGES]
          * Declare CQL_VERSION 3.0.5

@@ -9,7 +9,7 @@ use strict;
 use warnings;
 use base qw( Protocol::CassandraCQL::ColumnMeta );
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 use Carp;
 
@@ -30,7 +30,7 @@ information about column metadata, such as column names and types.
 
 =cut
 
-=head1 CONSTRUCTOR
+=head1 CONSTRUCTORS
 
 =head2 $result = Protocol::CassandraCQL::Result->from_frame( $frame )
 
@@ -46,11 +46,56 @@ sub from_frame
    my $self = $class->SUPER::from_frame( $frame );
 
    my $n_rows = $frame->unpack_int;
-   my $n_columns = scalar @{$self->{columns}};
+   my $n_columns = $self->columns;
 
    $self->{rows} = [];
    foreach ( 1 .. $n_rows ) {
-      push @{$self->{rows}}, [ map { $frame->unpack_bytes } 1 .. $n_columns ];
+      my @rowbytes = map { $frame->unpack_bytes } 1 .. $n_columns;
+      push @{$self->{rows}}, [ $self->decode_data( @rowbytes ) ];
+   }
+
+   return $self;
+}
+
+=head2 $result = Protocol::CassandraCQL::Result->new( %args )
+
+Returns a new result object initialised directly from the given row data. This
+constructor is intended for use by unit test scripts, to create results
+directly from mocked connection objects or similar.
+
+In addition to the arguments taken by the superclass constructor, it takes the
+following named arguments:
+
+=over 8
+
+=item rows => ARRAY[ARRAY]
+
+An ARRAY reference containing ARRAY references of the individual rows' data.
+
+=back
+
+=cut
+
+sub new
+{
+   my $class = shift;
+   my %args = @_;
+
+   my $rows = delete $args{rows};
+
+   my $self = $class->SUPER::new( %args );
+
+   $self->{rows} = \my @rows;
+
+   foreach my $ri ( 0 .. $#$rows ) {
+      my $row = $rows->[$ri];
+
+      foreach my $ci ( 0 .. $self->columns-1 ) {
+         my $e = $self->column_type( $ci )->validate( $row->[$ci] ) or next;
+         croak "Cannot construct row $ri: ".$self->column_shortname( $ci ).": $e";
+      }
+
+      push @rows, [ @$row ];
    }
 
    return $self;
@@ -68,22 +113,6 @@ sub rows
    return scalar @{ $self->{rows} };
 }
 
-=head2 @columns = $result->rowbytes( $idx )
-
-Returns a list of the raw bytestrings containing the row's data
-
-=cut
-
-sub rowbytes
-{
-   my $self = shift;
-   my ( $idx ) = @_;
-
-   croak "No such row $idx" unless $idx >= 0 and $idx < @{ $self->{rows} };
-
-   return @{ $self->{rows}[$idx] };
-}
-
 =head2 $data = $result->row_array( $idx )
 
 Returns the row's data decoded, as an ARRAY reference
@@ -95,7 +124,10 @@ sub row_array
    my $self = shift;
    my ( $idx ) = @_;
 
-   return [ $self->decode_data( $self->rowbytes( $idx ) ) ];
+   croak "No such row $idx" unless $idx >= 0 and $idx < @{ $self->{rows} };
+
+   # clone it so the caller can't corrupt our stored state
+   return [ @{ $self->{rows}[$idx] } ];
 }
 
 =head2 $data = $result->row_hash( $idx )
@@ -110,8 +142,9 @@ sub row_hash
    my $self = shift;
    my ( $idx ) = @_;
 
-   my @data = $self->decode_data( $self->rowbytes( $idx ) );
-   return { map { $self->column_shortname( $_ ) => $data[$_] } 0 .. $#data };
+   croak "No such row $idx" unless $idx >= 0 and $idx < @{ $self->{rows} };
+
+   return { map { $self->column_shortname( $_ ) => $self->{rows}[$idx][$_] } 0 .. $self->columns-1 };
 }
 
 =head2 @data = $result->rows_array

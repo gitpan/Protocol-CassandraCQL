@@ -96,4 +96,21 @@ use Protocol::CassandraCQL::ColumnMeta;
          '->encode_data validates collection types' );
 }
 
+# mocking constructor
+{
+   my $meta = Protocol::CassandraCQL::ColumnMeta->new(
+      columns => [
+         [ k => t => key   => "VARCHAR" ],
+         [ k => t => value => "BIGINT" ],
+      ],
+   );
+
+   is( scalar $meta->columns, 2, '$meta->columns is 2 for ->new' );
+
+   is_deeply( [ $meta->column_name(0) ], [qw( k t key   )], '$meta->column_name(0) for ->new' );
+   is_deeply( [ $meta->column_name(1) ], [qw( k t value )], '$meta->column_name(1) for ->new' );
+   is( $meta->column_type(0)->name, "VARCHAR", '$meta->column_type(0) for ->new' );
+   is( $meta->column_type(1)->name, "BIGINT",  '$meta->column_type(1) for ->new' );
+}
+
 done_testing;

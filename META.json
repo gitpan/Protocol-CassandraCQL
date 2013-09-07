@@ -32,27 +32,27 @@
    "provides" : {
       "Protocol::CassandraCQL" : {
          "file" : "lib/Protocol/CassandraCQL.pm",
-         "version" : "0.05"
+         "version" : "0.06"
       },
       "Protocol::CassandraCQL::Client" : {
          "file" : "lib/Protocol/CassandraCQL/Client.pm",
-         "version" : "0.05"
+         "version" : "0.06"
       },
       "Protocol::CassandraCQL::ColumnMeta" : {
          "file" : "lib/Protocol/CassandraCQL/ColumnMeta.pm",
-         "version" : "0.05"
+         "version" : "0.06"
       },
       "Protocol::CassandraCQL::Frame" : {
          "file" : "lib/Protocol/CassandraCQL/Frame.pm",
-         "version" : "0.05"
+         "version" : "0.06"
       },
       "Protocol::CassandraCQL::Result" : {
          "file" : "lib/Protocol/CassandraCQL/Result.pm",
-         "version" : "0.05"
+         "version" : "0.06"
       },
       "Protocol::CassandraCQL::Type" : {
          "file" : "lib/Protocol/CassandraCQL/Type.pm",
-         "version" : "0.05"
+         "version" : "0.06"
       },
       "Protocol::CassandraCQL::Type::ASCII" : {
          "file" : "lib/Protocol/CassandraCQL/Type.pm"
@@ -118,5 +118,5 @@
          "http://dev.perl.org/licenses/"
       ]
    },
-   "version" : "0.05"
+   "version" : "0.06"
 }

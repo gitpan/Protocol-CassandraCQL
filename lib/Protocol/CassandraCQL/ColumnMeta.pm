@@ -8,7 +8,7 @@ package Protocol::CassandraCQL::ColumnMeta;
 use strict;
 use warnings;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 use Carp;
 
@@ -32,11 +32,13 @@ It is also subclassed as L<Protocol::CassandraCQL::Result>.
 
 =cut
 
-=head1 CONSTRUCTOR
+=head1 CONSTRUCTORS
+
+=cut
 
 =head2 $meta = Protocol::CassandraCQL::ColumnMeta->from_frame( $frame )
 
-Returns a new result object initialised from the given message frame.
+Returns a new column metadata object initialised from the given message frame.
 
 =cut
 
@@ -66,25 +68,77 @@ sub from_frame
       push @columns, \@col;
    }
 
-   # Now fix up the shortnames
-   foreach my $idx ( 0 .. $#columns ) {
-      my $c = $columns[$idx];
+   $self->_set_shortnames;
+
+   return $self;
+}
+
+=head2 $meta = Protocol::CassandraCQL::ColumnMeta->new( %args )
+
+Returns a new column metadata object initialised directly from the given
+column data. This constructor is intended for use by unit test scripts, to
+create metadata directly from mocked connection objects or similar.
+
+It takes the following named arguments:
+
+=over 8
+
+=item columns => ARRAY[ARRAY[STR, STR, STR, STR]]
+
+An ARRAY reference containing the data about individual columns. Each row is
+represented by an ARRAY reference containing four strings; giving the three
+components of its name, and the name of its type:
+
+ [ $keyspace, $table, $column, $typename ]
+
+=back
+
+=cut
+
+sub new
+{
+   my $class = shift;
+   my %args = @_;
+
+   my $self = bless {}, $class;
+
+   $self->{columns} = \my @columns;
+
+   foreach my $c ( @{ $args{columns} } ) {
+      push @columns, [
+         @{$c}[0,1,2], # name
+         undef,        # shortname
+         Protocol::CassandraCQL::Type->from_name( $c->[3] ),
+      ];
+   }
+
+   $self->_set_shortnames;
+
+   return $self;
+}
+
+sub _set_shortnames
+{
+   my $self = shift;
+
+   my $columns = $self->{columns};
+
+   foreach my $idx ( 0 .. $#$columns ) {
+      my $c = $columns->[$idx];
       my @names;
 
       my $name = "$c->[0].$c->[1].$c->[2]";
       push @names, $name;
 
       $name = "$c->[1].$c->[2]";
-      push @names, $name if 1 == grep { "$_->[1].$_->[2]" eq $name } @columns;
+      push @names, $name if 1 == grep { "$_->[1].$_->[2]" eq $name } @$columns;
 
       $name = $c->[2];
-      push @names, $name if 1 == grep { $_->[2] eq $name } @columns;
+      push @names, $name if 1 == grep { $_->[2] eq $name } @$columns;
 
       $c->[3] = $names[-1];
       $self->{name_to_col}{$_} = $idx for @names;
    }
-
-   return $self;
 }
 
 =head1 METHODS

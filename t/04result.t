@@ -22,10 +22,6 @@ use Protocol::CassandraCQL::Result;
 
    is( scalar $result->rows, 1, '$result->rows is 1' );
 
-   is_deeply( [ $result->rowbytes( 0 ) ],
-              [ "data" ],
-              '$result->rowbytes(0)' );
-
    is_deeply( $result->row_array( 0 ),
               [ "data" ],
               '$result->row_array(0)' );
@@ -88,6 +84,36 @@ use Protocol::CassandraCQL::Result;
               { zero => { name => "zero", i => 0 },
                 one  => { name => "one",  i => 1 },
                 two  => { name => "two",  i => 2 } },
+              '$result->rowmap_hash' );
+}
+
+# mocking constructor
+{
+   my $result = Protocol::CassandraCQL::Result->new(
+      columns => [
+         [ k => t => key   => "VARCHAR" ],
+         [ k => t => value => "BIGINT" ],
+      ],
+      rows => [
+         [ one   => 1 ],
+         [ two   => 2 ],
+         [ three => 3 ],
+      ],
+   );
+
+   is( scalar $result->columns, 2, '$result->columns is 2 for ->new' );
+   is( scalar $result->rows,    3, '$result->rows is 3 for ->new' );
+
+   is_deeply( [ $result->rows_array ],
+              [ [ "one",   1 ],
+                [ "two",   2 ],
+                [ "three", 3 ] ],
+              '$result->rows_array for ->new' );
+
+   is_deeply( $result->rowmap_hash( "key" ),
+              { one   => { key => "one",   value => 1 },
+                two   => { key => "two",   value => 2 },
+                three => { key => "three", value => 3 } },
               '$result->rowmap_hash' );
 }
 
