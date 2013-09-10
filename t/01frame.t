@@ -15,6 +15,7 @@ use Socket qw( AF_INET  pack_sockaddr_in  unpack_sockaddr_in
                AF_INET6 pack_sockaddr_in6 unpack_sockaddr_in6
                inet_pton inet_ntop );
 
+use Protocol::CassandraCQL qw( parse_frame build_frame recv_frame send_frame );
 use Protocol::CassandraCQL::Frame;
 
 # Empty
@@ -148,13 +149,14 @@ is( Protocol::CassandraCQL::Frame->new->bytes, "", '->bytes empty' );
 # Complete message parsing
 {
    my $bytes = "\x81\x00\x01\x05\0\0\0\4\x01\x23\x45\x67Tail";
-   my ( $version, $flags, $streamid, $opcode, $frame ) =
-      Protocol::CassandraCQL::Frame->parse( $bytes );
+   my ( $version, $flags, $streamid, $opcode, $body ) = parse_frame( $bytes );
 
    is( $version, 0x81, '$version from ->parse' );
    is( $flags,   0x00, '$flags from ->parse' );
    is( $streamid,   1, '$streamid from ->parse' );
    is( $opcode,     5, '$opcode from ->parse' );
+
+   my $frame = Protocol::CassandraCQL::Frame->new( $body );
 
    is( $frame->unpack_int, 0x01234567, '$frame->unpack_int from ->parse' );
 
@@ -163,25 +165,33 @@ is( Protocol::CassandraCQL::Frame->new->bytes, "", '->bytes empty' );
    $frame = Protocol::CassandraCQL::Frame->new
       ->pack_int( 0x76543210 );
 
-   is_hexstr( $frame->build( 0x01, 0x00, 1, 6 ),
+   is_hexstr( build_frame( 0x01, 0x00, 1, 6, $frame->bytes ),
               "\x01\x00\x01\x06\0\0\0\4\x76\x54\x32\x10",
               '$frame->build' );
 }
 
-# recv
+# send/recv
 {
    pipe( my $rd, my $wr ) or die "Cannot pipe() - $!";
+   $wr->autoflush(1);
+
+   send_frame( $wr, 0x01, 0x00, 2, 6, "\0\2AB" );
+   $rd->sysread( my $bytes, 8192 );
+   is_hexstr( $bytes, "\x01\x00\x02\x06\0\0\0\4\0\2AB",
+              '$bytes written by send_frame' );
+
    $wr->syswrite( "\x81\x00\x02\x07\0\0\0\4\0\2Hi" );
 
-   my ( $version, $flags, $streamid, $opcode, $frame ) =
-      Protocol::CassandraCQL::Frame->recv( $rd );
+   my ( $version, $flags, $streamid, $opcode, $body ) = recv_frame( $rd );
 
-   is( $version, 0x81, '$version from ->recv' );
-   is( $flags,   0x00, '$flags from ->recv' );
-   is( $streamid,   2, '$streamid from ->recv' );
-   is( $opcode,     7, '$opcode from ->recv' );
+   is( $version, 0x81, '$version from ->recv_frame' );
+   is( $flags,   0x00, '$flags from ->recv_frame' );
+   is( $streamid,   2, '$streamid from ->recv_frame' );
+   is( $opcode,     7, '$opcode from ->recv_frame' );
 
-   is( $frame->unpack_string, "Hi", '$frame->unpack_string from ->recv' );
+   my $frame = Protocol::CassandraCQL::Frame->new( $body );
+
+   is( $frame->unpack_string, "Hi", '$frame->unpack_string from ->recv_frame' );
 }
 
 done_testing;

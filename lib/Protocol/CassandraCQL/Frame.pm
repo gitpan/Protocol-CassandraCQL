@@ -8,7 +8,7 @@ package Protocol::CassandraCQL::Frame;
 use strict;
 use warnings;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 use Carp;
 
@@ -65,61 +65,26 @@ sub new
    bless \$bytes, $class;
 }
 
-=head2 ( $version, $flags, $streamid, $opcode, $frame ) = Protocol::CassandraCQL::Frame->parse( $bytes )
-
-Attempts to parse a complete frame from the given byte string. If it succeeds,
-it returns the header fields and an object containing the frame body. If it
-fails, it returns an empty list.
-
-If successful, it will remove the bytes of the message from the C<$bytes>
-scalar, which must therefore be mutable.
-
-=cut
-
-sub parse
-{
-   my $class = shift;
-   return unless length $_[0] >= 8; # header length
-
-   my $bodylen = unpack( "x4 N", $_[0] );
-   return unless length $_[0] >= 8 + $bodylen;
-
-   # Now committed to extracting a frame
-   my ( $version, $flags, $streamid, $opcode ) = unpack( "C C C C x4", substr $_[0], 0, 8, "" );
-   my $body = substr $_[0], 0, $bodylen, "";
-
-   my $frame = $class->new( $body );
-
-   return ( $version, $flags, $streamid, $opcode, $frame );
-}
-
-=head2 ( $version, $flags, $streamid, $opcode, $frame ) = Protocol::CassandraCQL::Frame->recv( $fh )
-
-Attempts to read a complete frame from the given filehandle, blocking until it
-is available. If an IO error happens, returns an empty list. The results are
-undefined if this method is called on a non-blocking filehandle.
-
-=cut
-
-sub recv
-{
-   my $class = shift;
-   my ( $fh ) = @_;
-
-   $fh->read( my $header, 8 ) or return;
-   my ( $version, $flags, $streamid, $opcode, $bodylen ) = unpack( "C C C C N", $header );
-
-   my $body = "";
-   $fh->read( $body, $bodylen ) or return if $bodylen;
-
-   my $frame = $class->new( $body );
-
-   return ( $version, $flags, $streamid, $opcode, $frame );
-}
-
 =head1 METHODS
 
 =cut
+
+# Legacy back-compat methods
+# DO NOT USE THESE - see Protocol::CassandraCQL::parse_frame and ::build_frame instead
+
+sub parse
+{
+   shift; # class
+   my ( $version, $flags, $id, $opcode, $body ) = Protocol::CassandraCQL::parse_frame( $_[0] )
+      or return;
+   return ( $version, $flags, $id, $opcode, Protocol::CassandraCQL::Frame->new( $body ) );
+}
+
+sub build
+{
+   my $self = shift;
+   return Protocol::CassandraCQL::build_frame( @_[0..3], $self->bytes );
+}
 
 =head2 $bytes = $frame->bytes
 
@@ -128,22 +93,6 @@ Returns the byte string currently in the buffer.
 =cut
 
 sub bytes { ${$_[0]} }
-
-=head2 $bytes = $frame->build( $version, $flags, $streamid, $opcode )
-
-Returns a byte string containing a complete message with the given fields as
-the header and the frame as the body.
-
-=cut
-
-sub build
-{
-   my $self = shift;
-   my ( $version, $flags, $streamid, $opcode ) = @_;
-
-   my $body = $self->bytes;
-   return pack "C C C C N a*", $version, $flags, $streamid, $opcode, length $body, $body;
-}
 
 =head2 $frame->pack_short( $v )
 

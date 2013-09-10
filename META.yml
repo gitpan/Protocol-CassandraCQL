@@ -16,22 +16,22 @@ name: Protocol-CassandraCQL
 provides:
   Protocol::CassandraCQL:
     file: lib/Protocol/CassandraCQL.pm
-    version: 0.06
+    version: 0.07
   Protocol::CassandraCQL::Client:
     file: lib/Protocol/CassandraCQL/Client.pm
-    version: 0.06
+    version: 0.07
   Protocol::CassandraCQL::ColumnMeta:
     file: lib/Protocol/CassandraCQL/ColumnMeta.pm
-    version: 0.06
+    version: 0.07
   Protocol::CassandraCQL::Frame:
     file: lib/Protocol/CassandraCQL/Frame.pm
-    version: 0.06
+    version: 0.07
   Protocol::CassandraCQL::Result:
     file: lib/Protocol/CassandraCQL/Result.pm
-    version: 0.06
+    version: 0.07
   Protocol::CassandraCQL::Type:
     file: lib/Protocol/CassandraCQL/Type.pm
-    version: 0.06
+    version: 0.07
   Protocol::CassandraCQL::Type::ASCII:
     file: lib/Protocol/CassandraCQL/Type.pm
   Protocol::CassandraCQL::Type::BIGINT:
@@ -71,9 +71,10 @@ provides:
   Protocol::CassandraCQL::Type::VARINT:
     file: lib/Protocol/CassandraCQL/Type.pm
 requires:
+  Compress::Snappy: 0
   Encode: 0
   IO::Socket::IP: 0
   Math::BigInt: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.06
+version: 0.07

@@ -1,5 +1,11 @@
 Revision history for Protocol-CassandraCQL
 
+0.07    2013/09/10 17:21:55
+        [CHANGES]
+         * Support frame compression in Protocol::CassandraCQL::Client
+         * Added constants for frame header flags
+         * Unit-test Protocol::CassandraCQL::Client
+
 0.06    2013/09/07 20:48:19
         [CHANGES]
          * Allow creating Protocol::CassandraCQL::ColumnMeta and

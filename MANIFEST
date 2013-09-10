@@ -18,4 +18,5 @@ t/01frame.t
 t/02types.t
 t/03meta.t
 t/04result.t
+t/10client.t
 t/99pod.t

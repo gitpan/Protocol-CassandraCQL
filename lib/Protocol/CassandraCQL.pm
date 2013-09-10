@@ -8,10 +8,13 @@ package Protocol::CassandraCQL;
 use strict;
 use warnings;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 use Exporter 'import';
-our @EXPORT_OK = qw();
+our @EXPORT_OK = qw(
+   parse_frame recv_frame
+   build_frame send_frame
+);
 
 =head1 NAME
 
@@ -54,6 +57,9 @@ Consistency levels used in C<OPCODE_QUERY> and C<OPCODE_EXECUTE> frames.
 #   https://github.com/apache/cassandra/blob/cassandra-1.2/doc/native_protocol.spec
 
 my %CONSTANTS = (
+   FLAG_COMPRESS => 0x01,
+   FLAG_TRACE    => 0x02,
+
    OPCODE_ERROR        => 0x00,
    OPCODE_STARTUP      => 0x01,
    OPCODE_READY        => 0x02,
@@ -119,6 +125,78 @@ our %EXPORT_TAGS = (
 =head1 FUNCTIONS
 
 =cut
+
+=head2 ( $version, $flags, $streamid, $opcode, $body ) = parse_frame( $bytes )
+
+Attempts to parse a complete message frame from the given byte string. If it
+succeeds, it returns the header fields and the body as an opaque byte string.
+If it fails, it returns an empty list.
+
+If successful, it will remove the bytes of the message from the C<$bytes>
+scalar, which must therefore be mutable.
+
+=cut
+
+sub parse_frame
+{
+   return unless length $_[0] >= 8; # header length
+
+   my $bodylen = unpack( "x4 N", $_[0] );
+   return unless length $_[0] >= 8 + $bodylen;
+
+   # Now committed to extracting a frame
+   my ( $version, $flags, $streamid, $opcode ) = unpack( "C C C C x4", substr $_[0], 0, 8, "" );
+   my $body = substr $_[0], 0, $bodylen, "";
+
+   return ( $version, $flags, $streamid, $opcode, $body );
+}
+
+=head2 ( $version, $flags, $streamid, $opcode, $body ) = recv_frame( $fh )
+
+Attempts to read a complete frame from the given filehandle, blocking until it
+is available. If an IO error happens, returns an empty list. The results are
+undefined if this method is called on a non-blocking filehandle.
+
+=cut
+
+sub recv_frame
+{
+   my ( $fh ) = @_;
+
+   $fh->read( my $header, 8 ) or return;
+   my ( $version, $flags, $streamid, $opcode, $bodylen ) = unpack( "C C C C N", $header );
+
+   my $body = "";
+   $fh->read( $body, $bodylen ) or return if $bodylen;
+
+   return ( $version, $flags, $streamid, $opcode, $body );
+}
+
+=head2 $bytes = build_frame( $version, $flags, $streamid, $opcode, $body )
+
+Returns a byte string containing a complete message with the given fields as
+the header and body.
+
+=cut
+
+sub build_frame
+{
+   my ( $version, $flags, $streamid, $opcode, $body ) = @_;
+
+   return pack "C C C C N a*", $version, $flags, $streamid, $opcode, length $body, $body;
+}
+
+=head2 send_frame( $fh, $version, $flags, $streamid, $opcode, $body )
+
+Sends a complete frame to the given filehandle.
+
+=cut
+
+sub send_frame
+{
+   my $fh = shift;
+   $fh->print( build_frame( @_ ) );
+}
 
 =head2 $name = typename( $type )
 

@@ -8,15 +8,20 @@ package Protocol::CassandraCQL::Client;
 use strict;
 use warnings;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 use base qw( IO::Socket::IP );
 
 use Carp;
 
-use Protocol::CassandraCQL qw( :opcodes :results );
+use Protocol::CassandraCQL qw(
+   :opcodes :results
+   send_frame recv_frame FLAG_COMPRESS
+);
 use Protocol::CassandraCQL::Frame;
 use Protocol::CassandraCQL::Result;
+
+use Compress::Snappy qw( compress decompress );
 
 use constant DEFAULT_CQL_PORT => 9042;
 
@@ -111,16 +116,35 @@ sub send_message
    my $self = shift;
    my ( $opcode, $frame ) = @_;
 
-   $self->send( $frame->build( 0x01, 0, 0, $opcode ) );
+   {
+      my $flags = 0;
+      my $body = $frame->bytes;
 
-   my ( $version, $flags, $streamid, $result_op, $response ) =
-      Protocol::CassandraCQL::Frame->recv( $self ) or croak "Unable to ->recv: $!";
+      my $body_compressed = compress( $body );
+      if( length $body_compressed < length $body ) {
+         $body = $body_compressed;
+         $flags |= FLAG_COMPRESS;
+      }
+
+      send_frame( $self, 0x01, $flags, 0, $opcode, $body );
+   }
+
+   my ( $version, $flags, $streamid, $result_op, $body ) = recv_frame( $self ) or croak "Unable to ->recv: $!";
 
    $version == 0x81 or
       croak sprintf "Unexpected message vrsion %#02x", $version;
-   # TODO: flags
+
+   if( $flags & FLAG_COMPRESS ) {
+      $body = decompress( $body );
+      $flags &= ~FLAG_COMPRESS;
+   }
+   $flags == 0 or
+      croak sprintf "Unexpected flags 0x%02x", $flags;
+
    $streamid == 0 or
       croak "Unexpected stream ID $streamid";
+
+   my $response = Protocol::CassandraCQL::Frame->new( $body );
 
    if( $result_op == OPCODE_ERROR ) {
       $response->unpack_int;
@@ -163,6 +187,7 @@ sub startup
       Protocol::CassandraCQL::Frame->new
          ->pack_string_map( {
             CQL_VERSION => "3.0.5",
+            COMPRESSION => "Snappy",
          } )
    );
 

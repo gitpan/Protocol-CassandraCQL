@@ -11,6 +11,7 @@ eval { pack( "q>", 1 ) eq "\0\0\0\0\0\0\0\1" } or
 my $build = Module::Build->new(
    module_name => 'Protocol::CassandraCQL',
    requires => {
+      'Compress::Snappy' => 0,
       'Encode' => 0,
       'Math::BigInt' => 0,
       'IO::Socket::IP' => 0,
