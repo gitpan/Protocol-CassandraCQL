@@ -8,7 +8,7 @@ package Protocol::CassandraCQL::Type;
 use strict;
 use warnings;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 use Carp;
 
@@ -261,10 +261,10 @@ sub decode {
    require Math::BigInt;
 
    if( unpack( "C", $_[1] ) >= 0x80 ) {
-      return -Math::BigInt->from_hex( unpack "H*", ~$_[1] ) - 1;
+      return -Math::BigInt->from_hex( "0x" . unpack "H*", ~$_[1] ) - 1;
    }
    else {
-      return Math::BigInt->from_hex( unpack "H*", $_[1] );
+      return Math::BigInt->from_hex( "0x" . unpack "H*", $_[1] );
    }
 }
 

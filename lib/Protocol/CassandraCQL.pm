@@ -8,12 +8,13 @@ package Protocol::CassandraCQL;
 use strict;
 use warnings;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 use Exporter 'import';
 our @EXPORT_OK = qw(
    parse_frame recv_frame
    build_frame send_frame
+   lookup_consistency
 );
 
 =head1 NAME
@@ -34,6 +35,10 @@ For a complete client, see instead L<Net::Async::CassandraCQL>.
 =head1 CONSTANTS
 
 The following families of constants are defined, along with export tags:
+
+=head2 FLAG_* (:flags)
+
+Bitmask of flags used in message frames.
 
 =head2 OPCODE_* (:opcodes)
 
@@ -116,6 +121,7 @@ constant->import( $_, $CONSTANTS{$_} ) for keys %CONSTANTS;
 push @EXPORT_OK, keys %CONSTANTS;
 
 our %EXPORT_TAGS = (
+   'flags'         => [ grep { m/^FLAG_/        } keys %CONSTANTS ],
    'opcodes'       => [ grep { m/^OPCODE_/      } keys %CONSTANTS ],
    'results'       => [ grep { m/^RESULT_/      } keys %CONSTANTS ],
    'types'         => [ grep { m/^TYPE_/        } keys %CONSTANTS ],
@@ -196,6 +202,21 @@ sub send_frame
 {
    my $fh = shift;
    $fh->print( build_frame( @_ ) );
+}
+
+=head2 $consistency = lookup_consistency( $name )
+
+Returns the C<CONSISTENCY_*> value for the given name (without the initial
+C<CONSISTENCY_> prefix).
+
+=cut
+
+my %consvals = map { substr($_, 12) => __PACKAGE__->$_ } grep { m/^CONSISTENCY_/ } keys %CONSTANTS;
+
+sub lookup_consistency
+{
+   my ( $name ) = @_;
+   return $consvals{$name};
 }
 
 =head2 $name = typename( $type )

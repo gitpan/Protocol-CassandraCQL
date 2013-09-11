@@ -13,6 +13,9 @@ DESCRIPTION
 CONSTANTS
     The following families of constants are defined, along with export tags:
 
+  FLAG_* (:flags)
+    Bitmask of flags used in message frames.
+
   OPCODE_* (:opcodes)
     Opcodes used in message frames.
 
@@ -46,6 +49,10 @@ FUNCTIONS
 
   send_frame( $fh, $version, $flags, $streamid, $opcode, $body )
     Sends a complete frame to the given filehandle.
+
+  $consistency = lookup_consistency( $name )
+    Returns the `CONSISTENCY_*' value for the given name (without the
+    initial `CONSISTENCY_' prefix).
 
   $name = typename( $type )
     Returns the name of the given `TYPE_*' value, without the initial

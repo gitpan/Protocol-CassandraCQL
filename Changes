@@ -1,5 +1,13 @@
 Revision history for Protocol-CassandraCQL
 
+0.08    2013/09/11 14:41:17
+        [CHANGES]
+         * Added lookup_consistency()
+         * Remember to document and provide export tags for flag constants
+
+        [BUGFIXES]
+         * Older versions of Math::BigInt->from_hex needs leading "0x"
+
 0.07    2013/09/10 17:21:55
         [CHANGES]
          * Support frame compression in Protocol::CassandraCQL::Client
