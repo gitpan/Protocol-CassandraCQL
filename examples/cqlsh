@@ -5,7 +5,7 @@ use warnings;
 use 5.010;
 
 use Protocol::CassandraCQL::Client;
-use Protocol::CassandraCQL qw( CONSISTENCY_ONE :types );
+use Protocol::CassandraCQL qw( CONSISTENCY_ONE :types :results );
 
 use Getopt::Long;
 use List::Util qw( max );
@@ -19,12 +19,14 @@ GetOptions(
    'host|h=s' => \(my $HOST = "localhost"),
    'user|u=s' => \my $USERNAME,
    'pass|p=s' => \my $PASSWORD,
+   'version|V=i' => \my $CQLVERSION,
 ) or exit 1;
 
 my $cassie = Protocol::CassandraCQL::Client->new(
    PeerHost => $HOST,
    Username => $USERNAME,
    Password => $PASSWORD,
+   CQLVersion => $CQLVERSION,
 );
 $cassie or die "Cannot connect to $HOST - $@";
 
@@ -48,13 +50,13 @@ while( defined( my $query = $term->readline(sprintf "\ncql%s> ", defined $keyspa
       next;
    }
 
-   if( $type eq "keyspace" ) {
+   if( $type == RESULT_SET_KEYSPACE ) {
       $keyspace = $result;
    }
-   elsif( $type eq "schema_change" ) {
+   elsif( $type == RESULT_SCHEMA_CHANGE ) {
       print join( " ", @$result ) . "\n";
    }
-   elsif( $type eq "rows" ) {
+   elsif( $type == RESULT_ROWS ) {
       # TODO: Text::Table?
 
       my @columns; # formatted, one ARRAY per column, containing row data

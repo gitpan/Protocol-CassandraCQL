@@ -1,17 +1,18 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2013 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2013-2014 -- leonerd@leonerd.org.uk
 
 package Protocol::CassandraCQL::ColumnMeta;
 
 use strict;
 use warnings;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 use Carp;
 
+use Protocol::CassandraCQL qw( :rowflags );
 use Protocol::CassandraCQL::Type;
 
 =head1 NAME
@@ -36,16 +37,20 @@ It is also subclassed as L<Protocol::CassandraCQL::Result>.
 
 =cut
 
-=head2 $meta = Protocol::CassandraCQL::ColumnMeta->from_frame( $frame )
+=head2 $meta = Protocol::CassandraCQL::ColumnMeta->from_frame( $frame, $version )
 
-Returns a new column metadata object initialised from the given message frame.
+Returns a new column metadata object initialised from the given message frame
+at the given CQL version number. (Version will default to 1 if not supplied,
+but this may become a required parameter in a future version).
 
 =cut
 
 sub from_frame
 {
    my $class = shift;
-   my ( $frame ) = @_;
+   my ( $frame, $version ) = @_;
+
+   defined $version or $version = 1;
 
    my $self = bless {}, $class;
 
@@ -54,21 +59,34 @@ sub from_frame
    my $flags     = $frame->unpack_int;
    my $n_columns = $frame->unpack_int;
 
-   my $has_gts = $flags & 0x0001;
-   my @gts = $has_gts ? ( $frame->unpack_string, $frame->unpack_string )
-                      : ();
+   my $has_gts = $flags & ROWS_HAS_GLOBALTABLESPEC;
 
-   foreach ( 1 .. $n_columns ) {
-      my @keyspace_table = $has_gts ? @gts : ( $frame->unpack_string, $frame->unpack_string );
-      my $colname        = $frame->unpack_string;
-      my $type           = Protocol::CassandraCQL::Type->from_frame( $frame );
+   my $has_paging  = ( $version > 1 ) && ( $flags & ROWS_HAS_MORE_PAGES );
+   my $no_metadata = ( $version > 1 ) && ( $flags & ROWS_NO_METADATA );
 
-      my @col = ( @keyspace_table, $colname, undef, $type );
-
-      push @columns, \@col;
+   if( $has_paging ) {
+      $self->{paging_state} = $frame->unpack_bytes;
    }
 
-   $self->_set_shortnames;
+   if( $no_metadata ) {
+      push @columns, undef for 1 .. $n_columns;
+   }
+   else {
+      my @gts = $has_gts ? ( $frame->unpack_string, $frame->unpack_string )
+                         : ();
+
+      foreach ( 1 .. $n_columns ) {
+         my @keyspace_table = $has_gts ? @gts : ( $frame->unpack_string, $frame->unpack_string );
+         my $colname        = $frame->unpack_string;
+         my $type           = Protocol::CassandraCQL::Type->from_frame( $frame );
+
+         my @col = ( @keyspace_table, $colname, undef, $type );
+
+         push @columns, \@col;
+      }
+
+      $self->_set_shortnames;
+   }
 
    return $self;
 }
@@ -270,6 +288,35 @@ sub decode_data
 
    return map { defined $bytes[$_] ? $self->column_type( $_ )->decode( $bytes[$_] ) : undef }
           0 .. $#bytes;
+}
+
+=head2 $bytes = $meta->paging_state
+
+Returns the CQLv2+ paging state, if it was contained in the given frame. This
+would be returned in an C<OPCODE_RESULT> message to a query or execute request
+that requested paging.
+
+=cut
+
+sub paging_state
+{
+   my $self = shift;
+   return $self->{paging_state};
+}
+
+=head2 $bool = $meta->metadata_defined
+
+Returns a boolean indicating whether the column metadata (field names and
+types) is actually defined. Normally this would be true, except if the object
+is an instance of L<Protocol::CassandraCQL::Result> returned by executing a
+prepared statement with metadata specifically disabled.
+
+=cut
+
+sub metadata_defined
+{
+   my $self = shift;
+   return defined $self->{columns}[0];
 }
 
 =head1 SPONSORS

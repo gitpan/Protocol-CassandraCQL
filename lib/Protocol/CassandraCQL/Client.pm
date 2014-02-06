@@ -1,14 +1,14 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2013 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2013-2014 -- leonerd@leonerd.org.uk
 
 package Protocol::CassandraCQL::Client;
 
 use strict;
 use warnings;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 use base qw( IO::Socket::IP );
 
@@ -19,11 +19,22 @@ use Protocol::CassandraCQL qw(
    send_frame recv_frame FLAG_COMPRESS
 );
 use Protocol::CassandraCQL::Frame;
+use Protocol::CassandraCQL::Frames qw(
+   build_startup_frame
+   build_credentials_frame
+   build_query_frame
+
+   parse_error_frame
+   parse_authenticate_frame
+   parse_result_frame
+);
 use Protocol::CassandraCQL::Result;
 
 use Compress::Snappy qw( compress decompress );
 
 use constant DEFAULT_CQL_PORT => 9042;
+
+use constant MAX_SUPPORTED_VERSION => 2;
 
 =head1 NAME
 
@@ -77,6 +88,11 @@ Authentication credentials if required by the server.
 
 If defined, selects the keyspace to C<USE> after connection.
 
+=item CQLVersion => INT
+
+If defined, sets the CQL protocol version that will be negotiated. If omitted
+will default to 1.
+
 =back
 
 =cut
@@ -90,10 +106,20 @@ sub new
 
    my $self = $class->SUPER::new( %args ) or return;
 
+   ${*$self}{Cassandra_version} = $args{CQLVersion} // 1; # default 1
+   $self->_version <= MAX_SUPPORTED_VERSION or
+      croak "CQLVersion too high - maximum supported is " . MAX_SUPPORTED_VERSION;
+
    $self->startup( %args );
    $self->use_keyspace( $args{Keyspace} ) if defined $args{Keyspace};
 
    return $self;
+}
+
+sub _version
+{
+   my $self = shift;
+   return ${*$self}{Cassandra_version};
 }
 
 =head1 METHODS
@@ -126,13 +152,16 @@ sub send_message
          $flags |= FLAG_COMPRESS;
       }
 
-      send_frame( $self, 0x01, $flags, 0, $opcode, $body );
+      send_frame( $self, $self->_version, $flags, 0, $opcode, $body );
    }
 
    my ( $version, $flags, $streamid, $result_op, $body ) = recv_frame( $self ) or croak "Unable to ->recv: $!";
 
-   $version == 0x81 or
-      croak sprintf "Unexpected message vrsion %#02x", $version;
+   $version & 0x80 or croak "Expected response frame to have RESPONSE bit set";
+   $version &= 0x7f;
+
+   $version <= $self->_version or
+      croak sprintf "Received message version too high to parse (%d)", $version;
 
    if( $flags & FLAG_COMPRESS ) {
       $body = decompress( $body );
@@ -147,35 +176,15 @@ sub send_message
    my $response = Protocol::CassandraCQL::Frame->new( $body );
 
    if( $result_op == OPCODE_ERROR ) {
-      $response->unpack_int;
-      croak "OPCODE_ERROR: " . $response->unpack_string;
+      my ( undef, $message ) = parse_error_frame( $version, $response );
+      croak "OPCODE_ERROR: $message";
    }
+
+   # Version check after OPCODE_ERROR in case of "insupported version" error
+   $version == $self->_version or
+      croak sprintf "Unexpected message version %#02x", $version;
 
    return ( $result_op, $response );
-}
-
-# function
-sub _decode_result
-{
-   my ( $response ) = @_;
-
-   my $result = $response->unpack_int;
-
-   if( $result == RESULT_VOID ) {
-      return;
-   }
-   elsif( $result == RESULT_ROWS ) {
-      return rows => Protocol::CassandraCQL::Result->from_frame( $response );
-   }
-   elsif( $result == RESULT_SET_KEYSPACE ) {
-      return keyspace => $response->unpack_string;
-   }
-   elsif( $result == RESULT_SCHEMA_CHANGE ) {
-      return schema_change => [ map { $response->unpack_string } 1 .. 3 ];
-   }
-   else {
-      return "??" => $response->bytes;
-   }
 }
 
 sub startup
@@ -184,25 +193,23 @@ sub startup
    my %args = @_;
 
    my ( $op, $response ) = $self->send_message( OPCODE_STARTUP,
-      Protocol::CassandraCQL::Frame->new
-         ->pack_string_map( {
-            CQL_VERSION => "3.0.5",
-            COMPRESSION => "Snappy",
-         } )
+      build_startup_frame( $self->_version, options => {
+         CQL_VERSION => "3.0.5",
+         COMPRESSION => "Snappy",
+      } ),
    );
 
    if( $op == OPCODE_AUTHENTICATE ) {
-      my $authenticator = $response->unpack_string;
+      my ( $authenticator ) = parse_authenticate_frame( $self->_version, $response );
       if( $authenticator eq "org.apache.cassandra.auth.PasswordAuthenticator" ) {
          defined $args{Username} and defined $args{Password} or
             croak "Cannot authenticate without a username/password";
 
          ( $op, $response ) = $self->send_message( OPCODE_CREDENTIALS,
-            Protocol::CassandraCQL::Frame->new
-               ->pack_string_map( {
-                  username => $args{Username},
-                  password => $args{Password},
-               } )
+            build_credentials_frame( $self->_version, credentials => {
+               username => $args{Username},
+               password => $args{Password},
+            } )
          );
       }
       else {
@@ -215,20 +222,22 @@ sub startup
 
 =head2 ( $type, $result ) = $cass->query( $cql, $consistency )
 
-Performs a CQL query. The returned values will depend on the type of query:
+Performs a CQL query and returns the result, as decoded by
+L<Protocol::CassandraCQL::Frames/parse_result_frame>.
 
-For C<USE> queries, the type is C<keyspace> and C<$result> is a string giving
-the name of the new keyspace.
+For C<USE> queries, the type is C<RESULT_SET_KEYSPACE> and C<$result> is a
+string giving the name of the new keyspace.
 
-For C<CREATE>, C<ALTER> and C<DROP> queries, the type is C<schema_change> and
-C<$result> is a 3-element ARRAY reference containing the type of change, the
-keyspace and the table name.
+For C<CREATE>, C<ALTER> and C<DROP> queries, the type is
+C<RESULT_SCHEMA_CHANGE> and C<$result> is a 3-element ARRAY reference
+containing the type of change, the keyspace and the table name.
 
-For C<SELECT> queries, the type is C<rows> and C<$result> is an instance of
-L<Protocol::CassandraCQL::Result> containing the returned row data.
+For C<SELECT> queries, the type is C<RESULT_ROWS> and C<$result> is an
+instance of L<Protocol::CassandraCQL::Result> containing the returned row
+data.
 
 For other queries, such as C<INSERT>, C<UPDATE> and C<DELETE>, the method
-returns nothing.
+returns C<RESULT_VOID> and C<$result> is C<undef>.
 
 =cut
 
@@ -238,13 +247,11 @@ sub query
    my ( $cql, $consistency ) = @_;
 
    my ( $op, $response ) = $self->send_message( OPCODE_QUERY,
-      Protocol::CassandraCQL::Frame->new
-         ->pack_lstring( $cql )
-         ->pack_short( $consistency )
+      build_query_frame( $self->_version, cql => $cql, consistency => $consistency )
    );
 
    $op == OPCODE_RESULT or croak "Expected OPCODE_RESULT";
-   return _decode_result( $response );
+   return parse_result_frame( $self->_version, $response );
 }
 
 =head2 ( $type, $result ) = $cass->use_keyspace( $keyspace )
@@ -265,6 +272,20 @@ sub use_keyspace
 
    $self->query( qq(USE "$keyspace"), 0 );
 }
+
+=head1 TODO
+
+=over 8
+
+=item *
+
+Consider how the server's maximum supported CQL version can be detected on
+startup. This is made hard by the fact that the server closes the connection
+if the version is too high, so we'll have to reconnect it.
+
+=back
+
+=cut
 
 =head1 SPONSORS
 

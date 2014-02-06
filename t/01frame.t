@@ -21,6 +21,16 @@ use Protocol::CassandraCQL::Frame;
 # Empty
 is( Protocol::CassandraCQL::Frame->new->bytes, "", '->bytes empty' );
 
+# byte
+{
+   my $frame = Protocol::CassandraCQL::Frame->new;
+   $frame->pack_byte( 0x55 );
+   is_hexstr( $frame->bytes, "\x55", '->pack_byte' );
+
+   $frame = Protocol::CassandraCQL::Frame->new( $frame->bytes );
+   is( $frame->unpack_byte, 0x55, '->unpack_byte' );
+}
+
 # short
 {
    my $frame = Protocol::CassandraCQL::Frame->new;
@@ -122,7 +132,7 @@ is( Protocol::CassandraCQL::Frame->new->bytes, "", '->bytes empty' );
               [ 8001, $INADDR ], '->unpack_inet IPv4' );
 }
 
-# inet - IPv4
+# inet - IPv6
 {
    my $frame = Protocol::CassandraCQL::Frame->new;
    my $IN6ADDR = inet_pton( AF_INET6, "2001:db8::1:2:3" );
@@ -144,6 +154,17 @@ is( Protocol::CassandraCQL::Frame->new->bytes, "", '->bytes empty' );
 
    $frame = Protocol::CassandraCQL::Frame->new( $frame->bytes );
    is_deeply( $frame->unpack_string_map, { one => "ONE", two => "TWO" }, '->unpack_string_map' );
+}
+
+# string multimap
+{
+   my $frame = Protocol::CassandraCQL::Frame->new;
+   $frame->pack_string_multimap( { one => [qw( A )], two => [qw( B C )] } );
+   is_hexstr( $frame->bytes, "\x00\x02" . "\x00\x03one\x00\x01\x00\x01A" .
+                                          "\x00\x03two\x00\x02\x00\x01B\x00\x01C", '->pack_string_multimap' );
+
+   $frame = Protocol::CassandraCQL::Frame->new( $frame->bytes );
+   is_deeply( $frame->unpack_string_multimap, { one => [qw( A )], two => [qw( B C )] }, '->unpack_string_multimap' );
 }
 
 # Complete message parsing

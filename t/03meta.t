@@ -10,14 +10,18 @@ use Test::HexString;
 use Protocol::CassandraCQL::Frame;
 use Protocol::CassandraCQL::ColumnMeta;
 
+# v1
 {
    my $meta = Protocol::CassandraCQL::ColumnMeta->from_frame(
       Protocol::CassandraCQL::Frame->new(
          "\0\0\0\1\0\0\0\3\0\4test\0\5table\0\3key\0\x0a\0\1i\0\x09\0\1b\0\x02"
-      )
+      ),
+      1
    );
 
    is( scalar $meta->columns, 3, '$meta->columns is 3' );
+
+   ok( $meta->metadata_defined, '$meta has metadata defined' );
 
    is_deeply( [ $meta->column_name( 0 ) ],
               [qw( test table key )],
@@ -57,6 +61,27 @@ use Protocol::CassandraCQL::ColumnMeta;
    like( exception { $meta->encode_data( "bad-data", "a string", 0 ) },
          qr/Cannot encode i: not a number/,
          '->encode_data validates types' );
+}
+
+# v2
+{
+   my $meta = Protocol::CassandraCQL::ColumnMeta->from_frame(
+      Protocol::CassandraCQL::Frame->new(
+         "\0\0\0\3\0\0\0\2\0\0\0\5STATE\0\4test\0\5table\0\3key\0\x0a\0\1i\0\x09"
+      ),
+      2
+   );
+
+   is( scalar $meta->columns, 2, '$meta->columns is 2' );
+
+   ok( $meta->metadata_defined, '$meta has metadata defined' );
+
+   is( $meta->column_shortname( 0 ), "key", '$meta->column_shortname(0)' );
+   is( $meta->column_shortname( 1 ), "i",   '$meta->column_shortname(1)' );
+   is( $meta->column_type(0)->name, "TEXT",   '$meta->column_type(0)->name' );
+   is( $meta->column_type(1)->name, "INT",    '$meta->column_type(1)->name' );
+
+   is( $meta->paging_state, "STATE", '$meta->paging_state' );
 }
 
 # Collections

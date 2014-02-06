@@ -1,7 +1,7 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2013 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2013-2014 -- leonerd@leonerd.org.uk
 
 package Protocol::CassandraCQL::Result;
 
@@ -9,7 +9,7 @@ use strict;
 use warnings;
 use base qw( Protocol::CassandraCQL::ColumnMeta );
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 use Carp;
 
@@ -32,26 +32,45 @@ information about column metadata, such as column names and types.
 
 =head1 CONSTRUCTORS
 
-=head2 $result = Protocol::CassandraCQL::Result->from_frame( $frame )
+=head2 $result = Protocol::CassandraCQL::Result->from_frame( $frame, $version )
 
 Returns a new result object initialised from the given C<OPCODE_RESULT> /
-C<RESULT_ROWS> message frame.
+C<RESULT_ROWS> message frame and CQL version number. (Version will default to
+1 if not supplied, but this may become a required parameter in a future
+version).
 
 =cut
 
 sub from_frame
 {
    my $class = shift;
-   my ( $frame ) = @_;
-   my $self = $class->SUPER::from_frame( $frame );
+   my ( $frame, $version ) = @_;
+
+   defined $version or $version = 1;
+
+   my $self = $class->SUPER::from_frame( $frame, $version );
 
    my $n_rows = $frame->unpack_int;
    my $n_columns = $self->columns;
 
-   $self->{rows} = [];
+   my $has_metadata = $self->metadata_defined;
+
+   if( $has_metadata ) {
+      $self->{rows} = [];
+   }
+   else {
+      $self->{rowbytes} = [];
+   }
+
    foreach ( 1 .. $n_rows ) {
       my @rowbytes = map { $frame->unpack_bytes } 1 .. $n_columns;
-      push @{$self->{rows}}, [ $self->decode_data( @rowbytes ) ];
+
+      if( $has_metadata ) {
+         push @{$self->{rows}}, [ $self->decode_data( @rowbytes ) ];
+      }
+      else {
+         push @{$self->{rowbytes}}, \@rowbytes;
+      }
    }
 
    return $self;
@@ -101,6 +120,38 @@ sub new
    return $self;
 }
 
+=head2 $result->set_metadata( $meta )
+
+If the result was constructed from a message frame with the
+C<ROWS_NO_METADATA> flag set, it would not have embedded metadata allowing the
+object to correctly decode the encoded byte strings. This method allows the
+caller to provide the metadata as previously returned by the C<OPCODE_PREPARE>
+operation that prepared the query initially, enabling its decoding.
+
+If the result object lacks this metadata, then before this method is called
+only the C<rows> and C<columns> methods may be used to return the general
+shape of the data; any of the row data methods will throw exceptions until
+the metadata is set.
+
+=cut
+
+sub set_metadata
+{
+   my $self = shift;
+   my ( $meta ) = @_;
+
+   $self->metadata_defined and croak "Cannot ->set_metadata - already have some";
+   $self->columns == $meta->columns or croak "Cannot ->set_metadata - column counts disagree";
+
+   # Steal it
+   $self->{columns} = $meta->{columns};
+
+   # Now decode the data
+   $self->{rows} = [ map {
+      [ $self->decode_data( @$_ ) ]
+   } @{ delete $self->{rowbytes} } ];
+}
+
 =head2 $n = $result->rows
 
 Returns the number of rows
@@ -110,7 +161,7 @@ Returns the number of rows
 sub rows
 {
    my $self = shift;
-   return scalar @{ $self->{rows} };
+   return scalar @{ $self->{rows} // $self->{rowbytes} };
 }
 
 =head2 $data = $result->row_array( $idx )
@@ -124,10 +175,12 @@ sub row_array
    my $self = shift;
    my ( $idx ) = @_;
 
-   croak "No such row $idx" unless $idx >= 0 and $idx < @{ $self->{rows} };
+   my $rows = $self->{rows} or croak "Row data is not yet decoded";
+
+   croak "No such row $idx" unless $idx >= 0 and $idx < @$rows;
 
    # clone it so the caller can't corrupt our stored state
-   return [ @{ $self->{rows}[$idx] } ];
+   return [ @{ $rows->[$idx] } ];
 }
 
 =head2 $data = $result->row_hash( $idx )
@@ -142,9 +195,11 @@ sub row_hash
    my $self = shift;
    my ( $idx ) = @_;
 
-   croak "No such row $idx" unless $idx >= 0 and $idx < @{ $self->{rows} };
+   my $rows = $self->{rows} or croak "Row data is not yet decoded";
 
-   return { map { $self->column_shortname( $_ ) => $self->{rows}[$idx][$_] } 0 .. $self->columns-1 };
+   croak "No such row $idx" unless $idx >= 0 and $idx < @$rows;
+
+   return { map { $self->column_shortname( $_ ) => $rows->[$idx][$_] } 0 .. $self->columns-1 };
 }
 
 =head2 @data = $result->rows_array

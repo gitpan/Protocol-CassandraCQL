@@ -1,5 +1,5 @@
 ---
-abstract: 'wire protocol support functions for Cassandra CQL3'
+abstract: 'wire protocol support functions for Cassandra CQL'
 author:
   - 'Paul Evans <leonerd@leonerd.org.uk>'
 build_requires:
@@ -7,7 +7,7 @@ build_requires:
   Test::HexString: 0
   Test::More: 0.88
 dynamic_config: 1
-generated_by: 'Module::Build version 0.4007, CPAN::Meta::Converter version 2.132140'
+generated_by: 'Module::Build version 0.4203, CPAN::Meta::Converter version 2.133380'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -16,22 +16,25 @@ name: Protocol-CassandraCQL
 provides:
   Protocol::CassandraCQL:
     file: lib/Protocol/CassandraCQL.pm
-    version: 0.08
+    version: 0.09
   Protocol::CassandraCQL::Client:
     file: lib/Protocol/CassandraCQL/Client.pm
-    version: 0.08
+    version: 0.09
   Protocol::CassandraCQL::ColumnMeta:
     file: lib/Protocol/CassandraCQL/ColumnMeta.pm
-    version: 0.08
+    version: 0.09
   Protocol::CassandraCQL::Frame:
     file: lib/Protocol/CassandraCQL/Frame.pm
-    version: 0.08
+    version: 0.09
+  Protocol::CassandraCQL::Frames:
+    file: lib/Protocol/CassandraCQL/Frames.pm
+    version: 0.09
   Protocol::CassandraCQL::Result:
     file: lib/Protocol/CassandraCQL/Result.pm
-    version: 0.08
+    version: 0.09
   Protocol::CassandraCQL::Type:
     file: lib/Protocol/CassandraCQL/Type.pm
-    version: 0.08
+    version: 0.09
   Protocol::CassandraCQL::Type::ASCII:
     file: lib/Protocol/CassandraCQL/Type.pm
   Protocol::CassandraCQL::Type::BIGINT:
@@ -77,4 +80,4 @@ requires:
   Math::BigInt: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.08
+version: 0.09

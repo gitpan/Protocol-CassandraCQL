@@ -1,14 +1,14 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2013 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2013-2014 -- leonerd@leonerd.org.uk
 
 package Protocol::CassandraCQL;
 
 use strict;
 use warnings;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 use Exporter 'import';
 our @EXPORT_OK = qw(
@@ -19,14 +19,14 @@ our @EXPORT_OK = qw(
 
 =head1 NAME
 
-C<Protocol::CassandraCQL> - wire protocol support functions for Cassandra CQL3
+C<Protocol::CassandraCQL> - wire protocol support functions for Cassandra CQL
 
 =head1 DESCRIPTION
 
 This module provides the basic constants and other support functions required
-to communicate with a Cassandra database using C<CQL3>. It is not in itself a
+to communicate with a Cassandra database using C<CQL>. It is not in itself a
 CQL client; it simply provides the necessary support functions to allow one to
-be written.
+be written. It supports the additions added by C<CQL> version 2.
 
 For a complete client, see instead L<Net::Async::CassandraCQL>.
 
@@ -44,9 +44,21 @@ Bitmask of flags used in message frames.
 
 Opcodes used in message frames.
 
+=head2 QUERY_* (:queryflags)
+
+Flag constants used in C<OPCODE_QUERY> frames.
+
+=head2 BATCH_* (:batches)
+
+Type constants used in C<OPCODE_BATCH> frames.
+
 =head2 RESULT_* (:results)
 
 Result codes used in C<OPCODE_RESULT> frames.
+
+=head2 ROWS_* (:rowflags)
+
+Flag constants used in C<RESULT_ROWS> frames.
 
 =head2 TYPE_* (:types)
 
@@ -78,12 +90,30 @@ my %CONSTANTS = (
    OPCODE_EXECUTE      => 0x0A,
    OPCODE_REGISTER     => 0x0B,
    OPCODE_EVENT        => 0x0C,
+   OPCODE_BATCH        => 0x0D,
+   OPCODE_AUTH_CHALLENGE => 0x0E,
+   OPCODE_AUTH_RESPONSE  => 0x0F,
+   OPCODE_AUTH_SUCCESS   => 0x10,
+
+   QUERY_VALUES                  => 0x0001,
+   QUERY_SKIP_METADATA           => 0x0002,
+   QUERY_PAGE_SIZE               => 0x0004,
+   QUERY_WITH_PAGING_STATE       => 0x0008,
+   QUERY_WITH_SERIAL_CONSISTENCY => 0x0010,
+
+   BATCH_LOGGED   => 0,
+   BATCH_UNLOGGED => 1,
+   BATCH_COUNTER  => 2,
 
    RESULT_VOID          => 0x0001,
    RESULT_ROWS          => 0x0002,
    RESULT_SET_KEYSPACE  => 0x0003,
    RESULT_PREPARED      => 0x0004,
    RESULT_SCHEMA_CHANGE => 0x0005,
+
+   ROWS_HAS_GLOBALTABLESPEC => 0x0001,
+   ROWS_HAS_MORE_PAGES      => 0x0002,
+   ROWS_NO_METADATA         => 0x0004,
 
    TYPE_CUSTOM    => 0x0000,
    TYPE_ASCII     => 0x0001,
@@ -114,6 +144,9 @@ my %CONSTANTS = (
    CONSISTENCY_ALL          => 0x0005,
    CONSISTENCY_LOCAL_QUORUM => 0x0006,
    CONSISTENCY_EACH_QUORUM  => 0x0007,
+   CONSISTENCY_SERIAL       => 0x0008,
+   CONSISTENCY_LOCAL_SERIAL => 0x0009,
+   CONSISTENCY_LOCAL_ONE    => 0x000A,
 );
 
 require constant;
@@ -123,7 +156,10 @@ push @EXPORT_OK, keys %CONSTANTS;
 our %EXPORT_TAGS = (
    'flags'         => [ grep { m/^FLAG_/        } keys %CONSTANTS ],
    'opcodes'       => [ grep { m/^OPCODE_/      } keys %CONSTANTS ],
+   'queryflags'    => [ grep { m/^QUERY_/       } keys %CONSTANTS ],
+   'batches'       => [ grep { m/^BATCH_/       } keys %CONSTANTS ],
    'results'       => [ grep { m/^RESULT_/      } keys %CONSTANTS ],
+   'rowflags'      => [ grep { m/^ROWS_/        } keys %CONSTANTS ],
    'types'         => [ grep { m/^TYPE_/        } keys %CONSTANTS ],
    'consistencies' => [ grep { m/^CONSISTENCY_/ } keys %CONSTANTS ],
 );

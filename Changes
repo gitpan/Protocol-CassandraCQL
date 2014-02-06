@@ -1,5 +1,12 @@
 Revision history for Protocol-CassandraCQL
 
+0.09    2014/02/06 18:06:47
+        [CHANGES]
+         * Added many more constants to Protocol::CassandraCQL
+         * Added Protocol::CassandraCQL::Frames for building/parsing message
+           frame bodies
+         * Support CQLv2
+
 0.08    2013/09/11 14:41:17
         [CHANGES]
          * Added lookup_consistency()
