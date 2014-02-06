@@ -1,5 +1,9 @@
 Revision history for Protocol-CassandraCQL
 
+0.10    2014/02/06 22:32:26
+        [BUGFIXES]
+         * unpack a prepared statement ID as short_bytes, not string
+
 0.09    2014/02/06 18:06:47
         [CHANGES]
          * Added many more constants to Protocol::CassandraCQL

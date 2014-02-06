@@ -8,7 +8,7 @@ package Protocol::CassandraCQL::Frames;
 use strict;
 use warnings;
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 use Exporter 'import';
 our @EXPORT_OK = qw(
@@ -406,7 +406,7 @@ sub parse_result_frame
       return ( $type, $frame->unpack_string );
    }
    elsif( $type == RESULT_PREPARED ) {
-      my $id = $frame->unpack_string;
+      my $id = $frame->unpack_short_bytes;
       my $params_meta = Protocol::CassandraCQL::ColumnMeta->from_frame( $frame );
 
       if( $version < 2 ) {
