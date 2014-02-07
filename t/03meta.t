@@ -21,7 +21,7 @@ use Protocol::CassandraCQL::ColumnMeta;
 
    is( scalar $meta->columns, 3, '$meta->columns is 3' );
 
-   ok( $meta->metadata_defined, '$meta has metadata defined' );
+   ok( $meta->has_metadata, '$meta has metadata defined' );
 
    is_deeply( [ $meta->column_name( 0 ) ],
               [qw( test table key )],
@@ -74,7 +74,7 @@ use Protocol::CassandraCQL::ColumnMeta;
 
    is( scalar $meta->columns, 2, '$meta->columns is 2' );
 
-   ok( $meta->metadata_defined, '$meta has metadata defined' );
+   ok( $meta->has_metadata, '$meta has metadata defined' );
 
    is( $meta->column_shortname( 0 ), "key", '$meta->column_shortname(0)' );
    is( $meta->column_shortname( 1 ), "i",   '$meta->column_shortname(1)' );

@@ -1,5 +1,6 @@
 Build.PL
 Changes
+examples/cassandra-options
 examples/cqlsh
 lib/Protocol/CassandraCQL.pm
 lib/Protocol/CassandraCQL/Client.pm

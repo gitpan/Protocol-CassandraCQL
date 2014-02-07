@@ -8,7 +8,7 @@ package Protocol::CassandraCQL::Frames;
 use strict;
 use warnings;
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 use Exporter 'import';
 our @EXPORT_OK = qw(
@@ -400,7 +400,7 @@ sub parse_result_frame
       return ( $type, undef );
    }
    elsif( $type == RESULT_ROWS ) {
-      return ( $type, Protocol::CassandraCQL::Result->from_frame( $frame ) );
+      return ( $type, Protocol::CassandraCQL::Result->from_frame( $frame, $version ) );
    }
    elsif( $type == RESULT_SET_KEYSPACE ) {
       return ( $type, $frame->unpack_string );

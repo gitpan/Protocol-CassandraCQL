@@ -1,5 +1,13 @@
 Revision history for Protocol-CassandraCQL
 
+0.11    2014/02/07 21:07:37
+        [CHANGES]
+         * Renamed ColumnMeta->metadata_defined to ->has_metadata
+        
+        [BUGFIXES]
+         * Pass CQL version from parse_result_frame to Result->from_frame so
+           that v2 metadata skipping or paging actually works
+
 0.10    2014/02/06 22:32:26
         [BUGFIXES]
          * unpack a prepared statement ID as short_bytes, not string

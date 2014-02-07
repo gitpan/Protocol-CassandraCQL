@@ -256,6 +256,32 @@ use Socket qw( unpack_sockaddr_in );
 
    is( $type, RESULT_ROWS, '$type from parse_result_frame rows' );
    isa_ok( $result, "Protocol::CassandraCQL::Result", '$result from parse_result_frame rows' );
+
+   is( $result->columns, 1, '$result->columns' );
+   is( $result->rows,    1, '$result->rows' );
+   is( $result->column_name( 0 ), "test.table.column", '$result->column_name( 0 )' );
+
+   ok( $result->has_metadata, '$result->has_metadata' );
+}
+
+# result rows v2 no_metadata
+{
+   my ( $type, $result ) = parse_result_frame( 2,
+      Protocol::CassandraCQL::Frame->new(
+         "\x00\x00\x00\x02" .
+            "\0\0\0\4\0\0\0\1" .
+            "\0\0\0\1" .
+            "\0\0\0\4data"
+      )
+   );
+
+   is( $type, RESULT_ROWS, '$type from parse_result_frame rows v2 no_metadata' );
+   isa_ok( $result, "Protocol::CassandraCQL::Result", '$result from parse_result_frame rows v2 no_metadata' );
+
+   is( $result->columns, 1, '$result->columns' );
+   is( $result->rows,    1, '$result->rows' );
+
+   ok( !$result->has_metadata, '$result->has_metadata false' );
 }
 
 # result set_keyspace

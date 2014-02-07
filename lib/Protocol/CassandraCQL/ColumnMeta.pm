@@ -8,7 +8,7 @@ package Protocol::CassandraCQL::ColumnMeta;
 use strict;
 use warnings;
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 use Carp;
 
@@ -304,7 +304,7 @@ sub paging_state
    return $self->{paging_state};
 }
 
-=head2 $bool = $meta->metadata_defined
+=head2 $bool = $meta->has_metadata
 
 Returns a boolean indicating whether the column metadata (field names and
 types) is actually defined. Normally this would be true, except if the object
@@ -313,7 +313,7 @@ prepared statement with metadata specifically disabled.
 
 =cut
 
-sub metadata_defined
+sub has_metadata
 {
    my $self = shift;
    return defined $self->{columns}[0];

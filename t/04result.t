@@ -128,7 +128,7 @@ use Protocol::CassandraCQL::Result;
       ), 2
    );
 
-   ok( !$result->metadata_defined, '$result has no metadata yet' );
+   ok( !$result->has_metadata, '$result has no metadata yet' );
 
    is( $result->columns, 2, '$result->columns is 2 for v2 with no metadata' );
    is( $result->rows,    1, '$result->rows is 1 for v2 with no metadata' );
@@ -140,7 +140,7 @@ use Protocol::CassandraCQL::Result;
       ],
    ) );
 
-   ok( $result->metadata_defined, '$result has metadata after ->set_metadata' );
+   ok( $result->has_metadata, '$result has metadata after ->set_metadata' );
 
    is_deeply( [ $result->rows_array ],
               [ [ "two", 2 ] ],

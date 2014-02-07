@@ -9,7 +9,7 @@ use strict;
 use warnings;
 use base qw( Protocol::CassandraCQL::ColumnMeta );
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 use Carp;
 
@@ -53,7 +53,7 @@ sub from_frame
    my $n_rows = $frame->unpack_int;
    my $n_columns = $self->columns;
 
-   my $has_metadata = $self->metadata_defined;
+   my $has_metadata = $self->has_metadata;
 
    if( $has_metadata ) {
       $self->{rows} = [];
@@ -140,7 +140,7 @@ sub set_metadata
    my $self = shift;
    my ( $meta ) = @_;
 
-   $self->metadata_defined and croak "Cannot ->set_metadata - already have some";
+   $self->has_metadata and croak "Cannot ->set_metadata - already have some";
    $self->columns == $meta->columns or croak "Cannot ->set_metadata - column counts disagree";
 
    # Steal it
