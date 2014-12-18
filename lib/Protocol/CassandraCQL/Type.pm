@@ -8,7 +8,7 @@ package Protocol::CassandraCQL::Type;
 use strict;
 use warnings;
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 use Carp;
 
@@ -16,6 +16,8 @@ use Encode ();
 
 use Protocol::CassandraCQL qw( :types );
 use Protocol::CassandraCQL::Frame; # collection types use it for encoding/decoding
+
+use constant HAVE_INT64 => eval { pack( "q>", 1 ) eq "\0\0\0\0\0\0\0\1" };
 
 =head1 NAME
 
@@ -146,8 +148,15 @@ sub decode { $_[1] }
 # 64-bit integer
 package Protocol::CassandraCQL::Type::BIGINT;
 use base qw( Protocol::CassandraCQL::Type::_integral );
-sub encode { pack   "q>", $_[1] }
-sub decode { unpack "q>", $_[1] }
+if( Protocol::CassandraCQL::Type::HAVE_INT64 ) {
+   *encode = sub { pack   "q>", $_[1] };
+   *decode = sub { unpack "q>", $_[1] };
+}
+else {
+   require Math::Int64;
+   *encode = sub { Math::Int64::int64_to_net( $_[1] ) };
+   *decode = sub { Math::Int64::net_to_int64( $_[1] ) };
+}
 
 # blob
 package Protocol::CassandraCQL::Type::BLOB;
@@ -217,8 +226,15 @@ use base qw( Protocol::CassandraCQL::Type::VARCHAR );
 # miliseconds since UNIX epoch as 64bit uint
 package Protocol::CassandraCQL::Type::TIMESTAMP;
 use base qw( Protocol::CassandraCQL::Type::_integral );
-sub encode {  pack   "Q>", ($_[1] * 1000) }
-sub decode { (unpack "Q>", $_[1]) / 1000  }
+if( Protocol::CassandraCQL::Type::HAVE_INT64 ) {
+   *encode = sub {  pack   "Q>", ($_[1] * 1000) };
+   *decode = sub { (unpack "Q>", $_[1]) / 1000  };
+}
+else {
+   require Math::Int64;
+   *encode = sub {  Math::Int64::uint64_to_net( $_[1] * 1000 ) };
+   *decode = sub { (Math::Int64::net_to_uint64( $_[1] )) / 1000 };
+}
 
 # UUID is just a hex string - accept 32 hex digits, hypens optional
 package Protocol::CassandraCQL::Type::UUID;

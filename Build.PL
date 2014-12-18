@@ -3,10 +3,11 @@ use warnings;
 
 use Module::Build;
 
-# If you don't support 64-bit pack formats you will have a bad time and will
-# not talk to Cassandra today
+my %also_requires;
+
+# If you don't support 64-bit pack formats natively you will need Math::Int64
 eval { pack( "q>", 1 ) eq "\0\0\0\0\0\0\0\1" } or
-   die "OS unsupported - no 64bit integers";
+   $also_requires{"Math::Int64"} = 0;
 
 my $build = Module::Build->new(
    module_name => 'Protocol::CassandraCQL',
@@ -15,13 +16,18 @@ my $build = Module::Build->new(
       'Encode' => 0,
       'Math::BigInt' => 0,
       'IO::Socket::IP' => 0,
+      'Socket' => '1.82', # inet_pton
+      %also_requires,
    },
-   build_requires => {
+   test_requires => {
       'Test::HexString' => 0,
       'Test::Fatal' => 0,
       'Test::More' => '0.88', # done_testing
    },
-   auto_configure_requires => 0, # Don't add M::B to configure_requires
+   configure_requires => {
+      'Module::Build' => '0.4004', # test_requires
+   },
+   dynamic_config => 1,
    license => 'perl',
    create_makefile_pl => 'small', # since we do active testing here
    create_license => 1,

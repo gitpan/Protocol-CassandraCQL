@@ -8,7 +8,7 @@ package Protocol::CassandraCQL;
 use strict;
 use warnings;
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 use Exporter 'import';
 our @EXPORT_OK = qw(
@@ -279,10 +279,6 @@ sub typename
 
 Reimplement L<Protocol::CassandraCQL::Frame> in XS code for better
 performance.
-
-=item *
-
-Support 64bit-challenged perls by using C<Math::BigInt> for 64bit values
 
 =back
 

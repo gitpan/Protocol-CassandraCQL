@@ -18,6 +18,7 @@ use Protocol::CassandraCQL qw(
 use Protocol::CassandraCQL::Frame;
 
 my $test_server = IO::Socket::INET->new(
+   LocalHost => "127.0.0.1", # some OSes need this
    LocalPort => 0,
    Listen => 1,
 ) or die "Cannot listen - $@";

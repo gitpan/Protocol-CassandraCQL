@@ -11,9 +11,9 @@ use Test::HexString;
 use IO::Handle;
 
 # For 'inet' type
-use Socket qw( AF_INET  pack_sockaddr_in  unpack_sockaddr_in
-               AF_INET6 pack_sockaddr_in6 unpack_sockaddr_in6
-               inet_pton inet_ntop );
+use Socket 1.82 qw( AF_INET  pack_sockaddr_in  unpack_sockaddr_in
+                    AF_INET6 pack_sockaddr_in6 unpack_sockaddr_in6
+                    inet_pton inet_ntop );
 
 use Protocol::CassandraCQL qw( parse_frame build_frame recv_frame send_frame );
 use Protocol::CassandraCQL::Frame;

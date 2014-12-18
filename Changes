@@ -1,5 +1,10 @@
 Revision history for Protocol-CassandraCQL
 
+0.12    2014/12/18 15:33:09
+        [CHANGES]
+         * Support 64bit-challenged machines by using Math::Int64 to
+           implement the 64bit-integer types
+
 0.11    2014/02/07 21:07:37
         [CHANGES]
          * Renamed ColumnMeta->metadata_defined to ->has_metadata
